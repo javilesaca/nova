@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!-- Mini-consola para probar a NOVA desde el navegador (hito 1).
+     La cara de verdad llega en el hito 2: esto es solo para trastear. -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA · consola de pruebas</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0b0e14; color: #e6e6e6;
+         max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; }
+  #log { border: 1px solid #333; border-radius: 8px; padding: 1rem;
+         min-height: 300px; margin-bottom: 1rem; white-space: pre-wrap; }
+  .q { color: #7dd3fc; margin: 1rem 0 .3rem; }
+  .a { margin-bottom: .3rem; }
+  .citas { color: #9ca3af; font-size: .85rem; margin-bottom: 1rem; }
+  form { display: flex; gap: .5rem; }
+  input { flex: 1; padding: .6rem; border-radius: 8px; border: 1px solid #333;
+          background: #11151d; color: inherit; }
+  button { padding: .6rem 1rem; border-radius: 8px; border: 0;
+           background: #38bdf8; color: #04222f; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>✨ NOVA · consola de pruebas</h1>
+<div id="log"><em>Pregúntame sobre Javier y sus proyectos…</em></div>
+<form id="f">
+  <input id="q" placeholder="¿Qué proyecto usa eventos en tiempo real?" autocomplete="off">
+  <button>Preguntar</button>
+</form>
+<script>
+  const log = document.getElementById('log');
+  const form = document.getElementById('f');
+  const input = document.getElementById('q');
+  // Añade un bloque al historial. textContent (nunca innerHTML): lo que
+  // devuelva el modelo se muestra como texto, sin interpretar HTML.
+  function add(cls, text) {
+    const div = document.createElement('div');
+    div.className = cls;
+    div.textContent = text;
+    log.appendChild(div);
+  }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = input.value.trim();
+    if (!question) return;
+    input.value = '';
+    add('q', '❯ ' + question);
+    add('a', '…pensando…');
+    try {
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      const data = await res.json();
+      log.lastChild.remove();
+      if (!res.ok) { add('a', 'Error ' + res.status); return; }
+      add('a', data.answer);
+      const fuentes = (data.citations || [])
+        .map((c) => '· ' + c.title + ' (' + c.project + ')').join('\n');
+      if (fuentes) add('citas', 'Fuentes:\n' + fuentes);
+    } catch (err) {
+      log.lastChild.remove();
+      add('a', 'No pude contactar con NOVA: ' + err);
+    }
+  });
+</script>
+</body>
+</html>
