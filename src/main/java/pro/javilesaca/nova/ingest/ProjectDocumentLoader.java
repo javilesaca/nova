@@ -63,9 +63,54 @@ public class ProjectDocumentLoader {
                 // cita puede enlazar a la ficha correcta del portfolio.
                 "lang", file.toAbsolutePath().getParent().getFileName().toString());
         // El frontmatter (---...---) es ruido para el modelo: solo indexamos el cuerpo.
-        String body = raw.replaceFirst("(?s)^---.*?---\\s*", "");
+        // PERO las fichas del portfolio son SOLO frontmatter (sin cuerpo). En ese
+        // caso sintetizamos un texto indexable con los campos: mejor frontmatter
+        // convertido en frases que un proyecto invisible para NOVA.
+        String body = raw.replaceFirst("(?s)^---.*?---\\s*", "").trim();
+        if (body.isBlank()) {
+            body = synthesizeFromFrontmatter(raw, title, project);
+        }
         Document doc = new Document(body, metadata);
         return splitter.split(List.of(doc));
+    }
+
+    /**
+     * Convierte el frontmatter en frases indexables.
+     * Ej: "Proyecto X. Descripción... Tecnologías: a, b. Retos: ...".
+     * Simple a propósito: para 5 fichas no necesitamos un parser YAML.
+     */
+    String synthesizeFromFrontmatter(String raw, String title, String project) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Proyecto: ").append(title.isBlank() ? project : title).append(". ");
+        appendField(sb, raw, "description", "Descripción");
+        appendField(sb, raw, "shortDescription", "Resumen");
+        appendField(sb, raw, "techStack", "Tecnologías");
+        appendList(sb, raw, "challenges", "Retos");
+        appendList(sb, raw, "learnings", "Aprendizajes");
+        appendList(sb, raw, "metrics", "Métricas");
+        return sb.toString().trim();
+    }
+
+    /** Campo escalar (key: valor) → "Etiqueta: valor. ". Limpia corchetes y comillas. */
+    private void appendField(StringBuilder sb, String raw, String key, String label) {
+        String value = frontmatter(raw, key).replaceAll("[\\[\\]\"]", "").trim();
+        if (!value.isBlank()) {
+            sb.append(label).append(": ").append(value).append(". ");
+        }
+    }
+
+    /** Lista YAML ("  - item") → "Etiqueta: item1; item2. ". */
+    private void appendList(StringBuilder sb, String raw, String key, String label) {
+        List<String> items = raw.lines()
+                .dropWhile(l -> !l.startsWith(key + ":"))
+                .skip(1)
+                .takeWhile(l -> l.trim().startsWith("-"))
+                .map(l -> l.trim().substring(1).trim().replaceAll("^\"|\"$|value: |label: ", "").trim())
+                .filter(s -> !s.isBlank())
+                .toList();
+        if (!items.isEmpty()) {
+            sb.append(label).append(": ").append(String.join("; ", items)).append(". ");
+        }
     }
 
     /** Extrae un campo simple del frontmatter YAML (title: "..."). */

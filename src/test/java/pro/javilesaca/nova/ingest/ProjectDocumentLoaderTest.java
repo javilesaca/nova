@@ -56,4 +56,26 @@ class ProjectDocumentLoaderTest {
 
         assertThat(loader().load()).isEmpty();
     }
+
+    @Test
+    void frontmatterOnlyFileIsSynthesizedIntoIndexableText() throws Exception {
+        // Las fichas del portfolio son SOLO frontmatter: deben indexarse igual.
+        Files.writeString(tempDir.resolve("event-dashboard.mdx"), """
+                ---
+                title: "Panel de Eventos"
+                description: "API de eventos en tiempo real."
+                techStack: ["Java", "Spring Boot"]
+                challenges:
+                  - "Emitir eventos en vivo por SSE"
+                ---
+                """);
+
+        var docs = loader().load();
+
+        assertThat(docs).isNotEmpty();
+        assertThat(docs.get(0).getText())
+                .contains("Panel de Eventos")
+                .contains("tiempo real")
+                .contains("SSE");
+    }
 }
