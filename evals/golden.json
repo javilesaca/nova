@@ -1,0 +1,13 @@
+[
+  { "id": "tiempo-real", "question": "¿Qué proyecto usa eventos en tiempo real?", "expectedProjects": ["event-dashboard"] },
+  { "id": "stack-eventdashboard", "question": "¿Qué stack usa el EventDashboard?", "expectedProjects": ["event-dashboard"] },
+  { "id": "mongodb", "question": "¿Qué proyecto usa MongoDB?", "expectedProjects": ["event-dashboard"] },
+  { "id": "pong", "question": "¿Cuál es el clon del Pong?", "expectedProjects": ["hockey-pong"] },
+  { "id": "unity", "question": "¿Qué proyecto está hecho con Unity?", "expectedProjects": ["hockey-pong"] },
+  { "id": "recomendaciones", "question": "¿Qué proyecto recomienda videojuegos?", "expectedProjects": ["agente-gamer"] },
+  { "id": "ia", "question": "¿Qué proyecto usa IA?", "expectedProjects": ["agente-gamer"] },
+  { "id": "memoria", "question": "¿Hay algún juego de memoria o cartas?", "expectedProjects": ["memory-cards"] },
+  { "id": "ranking", "question": "¿Qué proyecto tiene un ranking?", "expectedProjects": ["ranking-videojuegos"] },
+  { "id": "memory-tema", "question": "¿De qué va el Memory Cards?", "expectedProjects": ["memory-cards"] },
+  { "id": "no-lo-se", "question": "¿Cuánto cuesta contratar a Javier por hora?", "expectedProjects": [], "expectAdmission": true }
+]

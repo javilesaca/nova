@@ -1,0 +1,91 @@
+/* Cara LED de NOVA (canónica de portfolio-astro, adaptada a consola estática).
+   Panel de puntos sobre pantalla oscura; solo el estado activo es visible.
+   El estado vive en data-expression del contenedor (#nova-face). Sin librerías. */
+
+/* Contenedor centrado sobre la consola. */
+#nova-face {
+  width: 220px;
+  max-width: 64vw;
+  margin: 0 auto 1rem;
+  /* Mirada de la retina: -1..1 en cada eje (0,0 = centrada, sin ratón/táctil). */
+  --px: 0;
+  --py: 0;
+}
+#nova-face svg { width: 100%; height: auto; display: block; }
+
+/* Chasis oscuro del panel LED (borde a juego con el botón Preguntar). */
+.face__screen { fill: #05080f; stroke: #0c4a6e; stroke-width: 2; }
+/* Cada "bombilla" del panel: mismo azul que el botón Preguntar (#38bdf8). */
+.dot { fill: #38bdf8; }
+
+/* Brillo del mismo azul del botón: puntos más grandes (ver pattern en HTML)
+   + halo del mismo tono para igualar la intensidad percibida del botón sólido. */
+.led { filter: drop-shadow(0 0 4px #38bdf8); }
+
+/* Solo el estado activo existe visualmente. */
+.face-state { display: none; }
+#nova-face[data-expression='idle'] .face-state--idle,
+#nova-face[data-expression='thinking'] .face-state--thinking,
+#nova-face[data-expression='speaking'] .face-state--speaking,
+#nova-face[data-expression='happy'] .face-state--happy,
+#nova-face[data-expression='confused'] .face-state--confused { display: block; }
+
+/* Parpadeo: colapsa SOLO los ojos (la boca sigue encendida). */
+#nova-face.is-blinking .led--eyes {
+  transform-origin: center; transform-box: fill-box;
+  animation: led-blink 0.12s linear;
+}
+@keyframes led-blink { to { transform: scaleY(0.05); } }
+
+/* En reposo la boca "respira" de vez en cuando (ciclo largo, casi todo quieto). */
+#nova-face[data-expression='idle'] .face-state--idle .led:last-child,
+#nova-face[data-expression='happy'] .face-state--happy .led:last-child {
+  transform-origin: center; transform-box: fill-box;
+  animation: led-idle-mouth 7s ease-in-out infinite;
+}
+@keyframes led-idle-mouth {
+  0%, 86% { transform: scaleY(1); }
+  89% { transform: scaleY(0.55); }
+  92% { transform: scaleY(1.18); }
+  95%, 100% { transform: scaleY(1); }
+}
+
+/* Hablando: la boca de puntos "mastica". */
+#nova-face[data-expression='speaking'] .led--mouth-talk {
+  transform-origin: center; transform-box: fill-box;
+  animation: led-talk 0.45s ease-in-out infinite alternate;
+}
+@keyframes led-talk { from { transform: scaleY(0.35); } to { transform: scaleY(1.25); } }
+
+/* Pensando: sin atenuado de intensidad (el panel parpadea por forma, no por luz).
+   Se mantiene un pulso geométrico sutil en vez del fundido de opacidad. */
+#nova-face[data-expression='thinking'] .led {
+  transform-origin: center; transform-box: fill-box;
+  animation: led-pulse 1.6s ease-in-out infinite alternate;
+}
+@keyframes led-pulse { from { transform: scale(1); } to { transform: scale(1.02); } }
+
+/* Retina: puntito negro sobre los LED que sigue al ratón.
+   Cada estado mueve sus pupilas con su recorrido máximo para que el
+   clip del ojo las recorte antes de salirse. Sin ratón quedan centradas. */
+.pupil { fill: #05080f; }
+.pupils--idle .pupil,
+.pupils--speaking .pupil {
+  transform: translate(calc(var(--px, 0) * 8px), calc(var(--py, 0) * 12px));
+}
+.pupils--thinking .pupil {
+  transform: translate(calc(var(--px, 0) * 8px), calc(var(--py, 0) * 3px));
+}
+.pupils--confused .pupil--big {
+  transform: translate(calc(var(--px, 0) * 7px), calc(var(--py, 0) * 10px));
+}
+.pupils--confused .pupil--small {
+  transform: translate(calc(var(--px, 0) * 4px), calc(var(--py, 0) * 6px));
+}
+/* Happy no lleva retina: los arcos ^ ^ no tienen superficie donde apoyarla. */
+.face-state--happy .pupil { display: none; }
+
+/* Respeta a quien pide reducir animaciones. */
+@media (prefers-reduced-motion: reduce) {
+  #nova-face * { animation: none !important; }
+}

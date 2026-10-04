@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <!-- Mini-consola para probar a NOVA desde el navegador (hito 1).
-     La cara de verdad llega en el hito 2: esto es solo para trastear. -->
+     Cara LED dot-matrix canónica de portfolio-astro (hito 2), adaptada a HTML
+     estático: panel de puntos con pattern + mask, ojos estilo EVA y 5 expresiones. -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NOVA · consola de pruebas</title>
+<link rel="stylesheet" href="nova-face.css">
 <style>
   body { font-family: system-ui, sans-serif; background: #0b0e14; color: #e6e6e6;
          max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
@@ -24,15 +26,138 @@
 </head>
 <body>
 <h1>✨ NOVA · consola de pruebas</h1>
+<!-- Cara LED de NOVA: un solo id basta en la consola (sin dock doble).
+     Cada estado = ojos (máscara) + boca (máscara) sobre el patrón de puntos;
+     solo el estado de data-expression se muestra (ver nova-face.css).
+     Accesible: role="img" con aria-label en español por estado. -->
+<div
+  id="nova-face"
+  class="nova-face"
+  data-expression="idle"
+  role="img"
+  aria-label="NOVA en reposo"
+>
+  <svg viewBox="0 0 200 160" aria-hidden="true">
+    <defs>
+      <!-- Rejilla de puntos luminosos (la "bombilla" del panel LED). -->
+      <pattern id="nova-dots-nova-face" width="6" height="6" patternUnits="userSpaceOnUse">
+        <circle cx="3" cy="3" r="2.5" class="dot" />
+      </pattern>
+
+      <!-- Ojos estilo EVA: óvalos alargados, inclinados hacia el centro. -->
+      <mask id="m-eyes-idle-nova-face">
+        <ellipse cx="70" cy="66" rx="17" ry="24" transform="rotate(8 70 66)" fill="#fff" />
+        <ellipse cx="130" cy="66" rx="17" ry="24" transform="rotate(-8 130 66)" fill="#fff" />
+      </mask>
+      <!-- Thinking: ojos entornados (rendijas de concentración). -->
+      <mask id="m-eyes-thinking-nova-face">
+        <ellipse cx="70" cy="68" rx="17" ry="9" transform="rotate(6 70 68)" fill="#fff" />
+        <ellipse cx="130" cy="68" rx="17" ry="9" transform="rotate(-6 130 68)" fill="#fff" />
+      </mask>
+      <!-- Happy: arcos ^ ^. -->
+      <mask id="m-eyes-happy-nova-face">
+        <path d="M52 74 Q70 52 88 74" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" />
+        <path d="M112 74 Q130 52 148 74" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" />
+      </mask>
+      <!-- Confused: uno grande y alto, otro pequeño y bajo (duda total). -->
+      <mask id="m-eyes-confused-nova-face">
+        <ellipse cx="68" cy="58" rx="16" ry="21" transform="rotate(8 68 58)" fill="#fff" />
+        <ellipse cx="132" cy="78" rx="12" ry="15" transform="rotate(-8 132 78)" fill="#fff" />
+      </mask>
+
+      <!-- Recortes de la pupila: misma geometría que los ojos ovalados.
+           La retina negra vive dentro y el clip impide que se salga del ojo.
+           Speaking reutiliza el recorte idle (mismos ojos). Happy no lleva
+           recorte: los arcos ^ ^ no tienen superficie donde apoyar la retina. -->
+      <clipPath id="c-eyes-idle-nova-face">
+        <ellipse cx="70" cy="66" rx="17" ry="24" transform="rotate(8 70 66)" />
+        <ellipse cx="130" cy="66" rx="17" ry="24" transform="rotate(-8 130 66)" />
+      </clipPath>
+      <clipPath id="c-eyes-thinking-nova-face">
+        <ellipse cx="70" cy="68" rx="17" ry="9" transform="rotate(6 70 68)" />
+        <ellipse cx="130" cy="68" rx="17" ry="9" transform="rotate(-6 130 68)" />
+      </clipPath>
+      <clipPath id="c-eyes-confused-nova-face">
+        <ellipse cx="68" cy="58" rx="16" ry="21" transform="rotate(8 68 58)" />
+        <ellipse cx="132" cy="78" rx="12" ry="15" transform="rotate(-8 132 78)" />
+      </clipPath>
+      <mask id="m-mouth-smile-nova-face">
+        <path d="M78 118 Q100 134 122 118" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" />
+      </mask>
+      <mask id="m-mouth-flat-nova-face">
+        <line x1="80" y1="120" x2="120" y2="120" stroke="#fff" stroke-width="9" stroke-linecap="round" />
+      </mask>
+      <mask id="m-mouth-grin-nova-face">
+        <path d="M74 114 Q100 146 126 114 Q100 128 74 114" fill="#fff" />
+      </mask>
+      <mask id="m-mouth-wavy-nova-face">
+        <path d="M78 120 Q88 114 96 121 Q104 128 112 121 Q118 116 124 120" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" />
+      </mask>
+      <mask id="m-mouth-talk-nova-face">
+        <ellipse cx="100" cy="122" rx="13" ry="15" fill="#fff" />
+      </mask>
+    </defs>
+
+    <!-- Pantalla: chasis oscuro del panel. -->
+    <rect x="10" y="10" width="180" height="140" rx="30" class="face__screen" />
+
+    <!-- Un grupo por expresión: idle, thinking, speaking, happy, confused. -->
+    <g class="face-state face-state--idle">
+      <g mask="url(#m-eyes-idle-nova-face)" class="led led--eyes"><rect x="30" y="20" width="140" height="90" fill="url(#nova-dots-nova-face)" /></g>
+      <!-- Retina: puntitos negros sobre los LED; el clip los mantiene dentro del ojo. -->
+      <g clip-path="url(#c-eyes-idle-nova-face)" class="pupils pupils--idle">
+        <circle cx="70" cy="66" r="3" fill="#05080f" class="pupil" />
+        <circle cx="130" cy="66" r="3" fill="#05080f" class="pupil" />
+      </g>
+      <g mask="url(#m-mouth-smile-nova-face)" class="led"><rect x="60" y="104" width="80" height="44" fill="url(#nova-dots-nova-face)" /></g>
+    </g>
+    <g class="face-state face-state--thinking">
+      <g mask="url(#m-eyes-thinking-nova-face)" class="led led--eyes"><rect x="30" y="20" width="140" height="90" fill="url(#nova-dots-nova-face)" /></g>
+      <!-- Retina entornada: mismo negro de pantalla, recorte de rendija. -->
+      <g clip-path="url(#c-eyes-thinking-nova-face)" class="pupils pupils--thinking">
+        <circle cx="70" cy="68" r="3" fill="#05080f" class="pupil" />
+        <circle cx="130" cy="68" r="3" fill="#05080f" class="pupil" />
+      </g>
+      <g mask="url(#m-mouth-flat-nova-face)" class="led"><rect x="60" y="104" width="80" height="44" fill="url(#nova-dots-nova-face)" /></g>
+    </g>
+    <g class="face-state face-state--speaking">
+      <g mask="url(#m-eyes-idle-nova-face)" class="led led--eyes"><rect x="30" y="20" width="140" height="90" fill="url(#nova-dots-nova-face)" /></g>
+      <!-- Retina hablando: reutiliza ojos y recorte idle. -->
+      <g clip-path="url(#c-eyes-idle-nova-face)" class="pupils pupils--speaking">
+        <circle cx="70" cy="66" r="3" fill="#05080f" class="pupil" />
+        <circle cx="130" cy="66" r="3" fill="#05080f" class="pupil" />
+      </g>
+      <g mask="url(#m-mouth-talk-nova-face)" class="led led--mouth-talk"><rect x="60" y="100" width="80" height="48" fill="url(#nova-dots-nova-face)" /></g>
+    </g>
+    <g class="face-state face-state--happy">
+      <!-- Sin retina: los arcos ^ ^ no tienen superficie donde apoyarla. -->
+      <g mask="url(#m-eyes-happy-nova-face)" class="led led--eyes"><rect x="30" y="20" width="140" height="90" fill="url(#nova-dots-nova-face)" /></g>
+      <g mask="url(#m-mouth-grin-nova-face)" class="led"><rect x="60" y="100" width="80" height="48" fill="url(#nova-dots-nova-face)" /></g>
+    </g>
+    <g class="face-state face-state--confused">
+      <g mask="url(#m-eyes-confused-nova-face)" class="led led--eyes"><rect x="30" y="20" width="140" height="90" fill="url(#nova-dots-nova-face)" /></g>
+      <!-- Retina asimétrica: ojo grande y ojo pequeño, cada uno con su recorrido. -->
+      <g clip-path="url(#c-eyes-confused-nova-face)" class="pupils pupils--confused">
+        <circle cx="68" cy="58" r="3" fill="#05080f" class="pupil pupil--big" />
+        <circle cx="132" cy="78" r="3" fill="#05080f" class="pupil pupil--small" />
+      </g>
+      <g mask="url(#m-mouth-wavy-nova-face)" class="led"><rect x="60" y="104" width="80" height="44" fill="url(#nova-dots-nova-face)" /></g>
+    </g>
+  </svg>
+</div>
 <div id="log"><em>Pregúntame sobre Javier y sus proyectos…</em></div>
 <form id="f">
   <input id="q" placeholder="¿Qué proyecto usa eventos en tiempo real?" autocomplete="off">
   <button>Preguntar</button>
 </form>
+<!-- Se carga antes del script de la consola: expone window.NovaFace. -->
+<script src="nova-face.js"></script>
 <script>
   const log = document.getElementById('log');
   const form = document.getElementById('f');
   const input = document.getElementById('q');
+  // Respuesta que suena a "no lo sé" aunque venga con citas (igual que el widget).
+  const NOSE = /no\s+(dispongo|tengo|lo\s+s[eé]|s[eé])/i;
   // Añade un bloque al historial. textContent (nunca innerHTML): lo que
   // devuelva el modelo se muestra como texto, sin interpretar HTML.
   function add(cls, text) {
@@ -40,14 +165,46 @@
     div.className = cls;
     div.textContent = text;
     log.appendChild(div);
+    return div;
   }
+  // Escribe la respuesta letra a letra; la boca "mastica" mientras tanto.
+  // Con reduced-motion se pinta de golpe (sin animar).
+  function typewriter(el, text) {
+    return new Promise((resolve) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        el.textContent = text;
+        resolve();
+        return;
+      }
+      let i = 0;
+      const tick = () => {
+        el.textContent = text.slice(0, i += 3);
+        if (i < text.length) setTimeout(tick, 12);
+        else resolve();
+      };
+      tick();
+    });
+  }
+  // Vuelve a reposo 4 s después de happy/confused (como en el widget).
+  function volverAIdle() {
+    setTimeout(() => {
+      const cara = document.getElementById('nova-face');
+      const expr = cara && cara.getAttribute('data-expression');
+      if (expr === 'happy' || expr === 'confused') window.NovaFace.setState('idle');
+    }, 4000);
+  }
+  // Cara de NOVA: reposo al cargar la página.
+  window.NovaFace.setState('idle');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const question = input.value.trim();
-    if (!question) return;
+    if (!question || form.dataset.busy) return;
+    form.dataset.busy = '1';
     input.value = '';
     add('q', '❯ ' + question);
-    add('a', '…pensando…');
+    const pending = add('a', '…pensando…');
+    // NOVA piensa mientras el fetch está en curso.
+    window.NovaFace.setState('thinking');
     try {
       const res = await fetch('/api/ask', {
         method: 'POST',
@@ -55,16 +212,35 @@
         body: JSON.stringify({ question })
       });
       const data = await res.json();
-      log.lastChild.remove();
-      if (!res.ok) { add('a', 'Error ' + res.status); return; }
-      add('a', data.answer);
-      const fuentes = (data.citations || [])
+      // Error HTTP: cara de duda.
+      if (!res.ok) { pending.textContent = 'Error ' + res.status; window.NovaFace.setState('confused'); return; }
+      // NOVA habla mientras escribe la respuesta (typewriter).
+      window.NovaFace.setState('speaking');
+      await typewriter(pending, data.answer);
+      const citas = data.citations || [];
+      const fuentes = citas
         .map((c) => '· ' + c.title + ' (' + c.project + ')').join('\n');
       if (fuentes) add('citas', 'Fuentes:\n' + fuentes);
+      // Contenta con citas (y sin "no sé"); dudosa sin citas o con "no sé".
+      const sabe = citas.length > 0 && !NOSE.test(data.answer);
+      window.NovaFace.setState(sabe ? 'happy' : 'confused');
     } catch (err) {
-      log.lastChild.remove();
-      add('a', 'No pude contactar con NOVA: ' + err);
+      pending.textContent = 'No pude contactar con NOVA: ' + err;
+      // Fallo de red: cara de duda.
+      window.NovaFace.setState('confused');
+    } finally {
+      delete form.dataset.busy;
+      volverAIdle();
     }
+  });
+  // Mientras el usuario escribe, NOVA pone cara de concentración.
+  // Al vaciar o salir del campo, vuelve a reposo (salvo que esté ocupada).
+  input.addEventListener('input', () => {
+    if (form.dataset.busy) return;
+    window.NovaFace.setState(input.value.trim() ? 'thinking' : 'idle');
+  });
+  input.addEventListener('blur', () => {
+    if (!form.dataset.busy && !input.value.trim()) window.NovaFace.setState('idle');
   });
 </script>
 </body>
