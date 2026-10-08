@@ -97,4 +97,18 @@ class NovaControllerTest {
                                 {"question":""}"""))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void saturadoSigueSiendo200() throws Exception {
+        when(nova.ask(anyString(), any())).thenReturn(new NovaAnswer(
+                "El servicio de IA está saturado o sin cuota. Prueba de nuevo más tarde.", List.of()));
+
+        mockMvc.perform(post("/api/ask")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"question":"¿Qué proyecto Acme hay?"}"""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.answer")
+                        .value("El servicio de IA está saturado o sin cuota. Prueba de nuevo más tarde."));
+    }
 }

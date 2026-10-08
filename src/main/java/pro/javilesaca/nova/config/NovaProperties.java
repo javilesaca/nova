@@ -2,6 +2,8 @@ package pro.javilesaca.nova.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.List;
+
 /**
  * Configuración tipada de NOVA.
  *
@@ -20,8 +22,28 @@ public record NovaProperties(
         String contentDir,
         String storeFile,
         int topK,
-        double similarityThreshold
+        double similarityThreshold,
+        Owner owner
 ) {
+    /** Identidad del dueño del portfolio: todo opcional, vacío = sin identidad. */
+    public record Owner(
+            String name,
+            String role,
+            String bio,
+            List<String> areas,
+            String hire,
+            List<String> chips
+    ) {
+        public Owner {
+            if (name == null) name = "";
+            if (role == null) role = "";
+            if (bio == null) bio = "";
+            if (areas == null) areas = List.of();
+            if (hire == null) hire = "";
+            if (chips == null) chips = List.of();
+        }
+    }
+
     public NovaProperties {
         if (contentDir == null || contentDir.isBlank()) {
             throw new IllegalArgumentException("nova.content-dir es obligatorio");
@@ -29,5 +51,14 @@ public record NovaProperties(
         if (topK < 1) {
             throw new IllegalArgumentException("nova.top-k debe ser >= 1");
         }
+        if (owner == null) {
+            owner = new Owner("", "", "", List.of(), "", List.of());
+        }
+    }
+
+    /** Compat: sin identidad (comportamiento actual). */
+    public NovaProperties(String contentDir, String storeFile, int topK, double similarityThreshold) {
+        this(contentDir, storeFile, topK, similarityThreshold,
+                new Owner("", "", "", List.of(), "", List.of()));
     }
 }
