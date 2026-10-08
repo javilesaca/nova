@@ -22,6 +22,10 @@
           background: #11151d; color: inherit; }
   button { padding: .6rem 1rem; border-radius: 8px; border: 0;
            background: #38bdf8; color: #04222f; font-weight: bold; cursor: pointer; }
+  #chips button.chip { padding: .45rem .8rem; border-radius: 999px; border: 1px solid #38bdf8;
+          background: transparent; color: #7dd3fc; font-weight: normal; }
+  #chips button.chip:hover { background: #123043; }
+  #chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .8rem; }
 </style>
 </head>
 <body>
@@ -146,6 +150,13 @@
   </svg>
 </div>
 <div id="log"><em>Pregúntame sobre Javier y sus proyectos…</em></div>
+<!-- Paridad con NovaWidget.astro de portfolio-astro: mismas 3 preguntas sugeridas.
+     El estático no lee nova.owner.chips, así que se duplican aquí a mano. -->
+<div id="chips">
+  <button type="button" class="chip" data-q="¿Qué experiencia tiene?">¿Qué experiencia tiene?</button>
+  <button type="button" class="chip" data-q="¿Qué proyectos usan IA?">¿Qué proyectos usan IA?</button>
+  <button type="button" class="chip" data-q="¿Por qué contratarle?">¿Por qué contratarle?</button>
+</div>
 <form id="f">
   <input id="q" placeholder="¿Qué proyecto usa eventos en tiempo real?" autocomplete="off">
   <button>Preguntar</button>
@@ -158,6 +169,8 @@
   const input = document.getElementById('q');
   // Respuesta que suena a "no lo sé" aunque venga con citas (igual que el widget).
   const NOSE = /no\s+(dispongo|tengo|lo\s+s[eé]|s[eé])/i;
+  // Degradación amable del backend (canned sin citas): cara de duda.
+  const SATURADO = /saturado o sin cuota/i;
   // Añade un bloque al historial. textContent (nunca innerHTML): lo que
   // devuelva el modelo se muestra como texto, sin interpretar HTML.
   function add(cls, text) {
@@ -195,6 +208,13 @@
   }
   // Cara de NOVA: reposo al cargar la página.
   window.NovaFace.setState('idle');
+  // Chips: clic = rellenar el input y enviar (paridad con NovaWidget.astro).
+  document.querySelectorAll('#chips .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      input.value = chip.dataset.q;
+      form.requestSubmit();
+    });
+  });
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const question = input.value.trim();
@@ -230,8 +250,8 @@
       const fuentes = citas
         .map((c) => '· ' + c.title + ' (' + c.project + ')').join('\n');
       if (fuentes) add('citas', 'Fuentes:\n' + fuentes);
-      // Contenta con citas (y sin "no sé"); dudosa sin citas o con "no sé".
-      const sabe = citas.length > 0 && !NOSE.test(data.answer);
+      // Contenta con citas (y sin "no sé" ni saturación); dudosa sin citas, con "no sé" o saturada.
+      const sabe = citas.length > 0 && !NOSE.test(data.answer) && !SATURADO.test(data.answer);
       window.NovaFace.setState(sabe ? 'happy' : 'confused');
     } catch (err) {
       // Abort por timeout (15 s): aviso + cara de duda.
