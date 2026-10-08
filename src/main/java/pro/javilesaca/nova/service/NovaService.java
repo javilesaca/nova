@@ -12,6 +12,7 @@ import pro.javilesaca.nova.config.NovaProperties;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -65,8 +66,32 @@ public class NovaService {
                 .build();
     }
 
-    /** Pregunta libre → respuesta + citas. */
+    /**
+     * Proyectos filtrables vía {@code context} (paridad con {@code nova-stellar/api/ask.php}).
+     * Solo un valor de esta lista activa el filtrado por metadato {@code project};
+     * cualquier otro valor (null, vacío o no-whitelist) mantiene la búsqueda global.
+     */
+    private static final Set<String> CONTEXT_WHITELIST = Set.of(
+            "agente-gamer", "event-dashboard", "ranking-videojuegos", "hockey-pong", "memory-cards");
+
+    /**
+     * Compat: pregunta global sin filtro de proyecto. Delega a {@link #ask(String, String)} con contexto nulo.
+     */
     public NovaAnswer ask(String question) {
+        return ask(question, null);
+    }
+
+    /**
+     * Pregunta con filtro opcional de proyecto.
+     *
+     * <p>Si {@code context} coincide exactamente con la whitelist, el retrieval y las citas
+     * se filtran en memoria por metadato {@code project == context} tras el
+     * {@code similaritySearch} global; si el filtrado deja vacío, las citas quedan vacías
+     * sin fallback global. En cualquier otro caso (null, vacío o no-whitelist) se mantiene
+     * el comportamiento global actual. La respuesta del modelo sigue generándose con el
+     * advisor global; el filtrado garantiza la paridad de evidencias con el lab PHP.
+     */
+    public NovaAnswer ask(String question, String context) {
         // 1. El modelo responde con el contexto ya inyectado por el advisor.
         String answer = chatClient.prompt().user(question).call().content();
         // 2. Recuperamos LOS MISMOS trozos para construir las citas en Java.
@@ -78,6 +103,11 @@ public class NovaService {
                                 .similarityThreshold(properties.similarityThreshold())
                                 .build()))
                 .orElse(List.of());
+        if (context != null && CONTEXT_WHITELIST.contains(context)) {
+            sources = sources.stream()
+                    .filter(d -> context.equals(String.valueOf(d.getMetadata().getOrDefault("project", ""))))
+                    .toList();
+        }
         List<NovaAnswer.Citation> citations = sources.stream()
                 .collect(Collectors.toMap(
                         d -> d.getId(), d -> d,
