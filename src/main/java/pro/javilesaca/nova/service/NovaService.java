@@ -9,6 +9,7 @@ import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.stereotype.Service;
 import pro.javilesaca.nova.config.NovaProperties;
 
+import java.text.Normalizer;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,6 +76,28 @@ public class NovaService {
             "agente-gamer", "event-dashboard", "ranking-videojuegos", "hockey-pong", "memory-cards");
 
     /**
+     * Fast-path fuera de ámbito: responde sin tocar el vector store ni el modelo.
+     * Va ANTES de cualquier llamada a embedding/chat porque cada {@code ask}
+     * normal cuesta 2 embeddings + 1 chat (≈40-60 s con Gemini en local).
+     */
+    private static final Set<String> WEATHER_TOKENS = Set.of(
+            "tiempo", "clima", "llueve", "temperatura", "hora", "fecha", "hoy");
+    private static final Set<String> GENERAL_TOKENS = Set.of(
+            "chiste", "ayuda", "help");
+    private static final String WEATHER_CANNED =
+            "No es mi función: solo respondo sobre el portfolio de Javier y sus proyectos.";
+    private static final String GENERAL_CANNED =
+            "No estoy entrenado para esa tarea: respondo solo sobre el perfil y los proyectos de Javier. "
+                    + "Puedo contarte sobre Ranking de Videojuegos, Hockey Pong o Memory Card.";
+
+    /** Minúsculas + sin tildes para comparar tokens ("¿Qué tiempo hace?" → "que tiempo hace"). */
+    static String normalize(String question) {
+        String lower = question.toLowerCase(java.util.Locale.ROOT);
+        String decomposed = Normalizer.normalize(lower, Normalizer.Form.NFD);
+        return decomposed.replaceAll("\\p{M}", "");
+    }
+
+    /**
      * Compat: pregunta global sin filtro de proyecto. Delega a {@link #ask(String, String)} con contexto nulo.
      */
     public NovaAnswer ask(String question) {
@@ -92,6 +115,19 @@ public class NovaService {
      * advisor global; el filtrado garantiza la paridad de evidencias con el lab PHP.
      */
     public NovaAnswer ask(String question, String context) {
+        // 0. Fast-path fuera de ámbito: canned + citas vacías, sin modelo ni vector store.
+        String normalized = normalize(question);
+        Set<String> tokens = Set.of(normalized.split("[^a-z]+"));
+        // "tiempo real" (eventos/SSE del portfolio) no es el clima: se excluye del token "tiempo".
+        boolean weather = tokens.stream()
+                .anyMatch(t -> WEATHER_TOKENS.contains(t)
+                        && !(t.equals("tiempo") && normalized.contains("tiempo real")));
+        if (weather) {
+            return new NovaAnswer(WEATHER_CANNED, List.of());
+        }
+        if (tokens.stream().anyMatch(GENERAL_TOKENS::contains)) {
+            return new NovaAnswer(GENERAL_CANNED, List.of());
+        }
         // 1. El modelo responde con el contexto ya inyectado por el advisor.
         String answer = chatClient.prompt().user(question).call().content();
         // 2. Recuperamos LOS MISMOS trozos para construir las citas en Java.
