@@ -1,5 +1,6 @@
 package pro.javilesaca.nova.controller;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +25,12 @@ public class NovaController {
         this.nova = nova;
     }
 
-    /** Pregunta validada: sin texto no hay nada que recuperar (400 automático). */
-    public record AskRequest(@NotBlank(message = "question es obligatoria") String question) {}
+    /** Pregunta validada: sin texto no hay nada que recuperar (400 automático). `context` es opcional y filtra por proyecto si está en whitelist (ver NovaService); se ignoran campos extra para paridad con el lab PHP. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record AskRequest(@NotBlank(message = "question es obligatoria") String question, String context) {}
 
     @PostMapping("/ask")
     public ResponseEntity<NovaAnswer> ask(@Valid @RequestBody AskRequest request) {
-        return ResponseEntity.ok(nova.ask(request.question()));
+        return ResponseEntity.ok(nova.ask(request.question(), request.context()));
     }
 }

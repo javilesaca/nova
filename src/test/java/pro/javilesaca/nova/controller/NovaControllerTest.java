@@ -9,8 +9,11 @@ import pro.javilesaca.nova.service.NovaService;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,7 +33,7 @@ class NovaControllerTest {
 
     @Test
     void askReturnsAnswerWithCitations() throws Exception {
-        when(nova.ask(anyString())).thenReturn(new NovaAnswer(
+        when(nova.ask(anyString(), any())).thenReturn(new NovaAnswer(
                 "Javier usa Spring Boot",
                 List.of(new NovaAnswer.Citation("event-dashboard", "Panel de Eventos", "Microservicio Spring Boot…"))));
 
@@ -41,6 +44,49 @@ class NovaControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.answer").value("Javier usa Spring Boot"))
                 .andExpect(jsonPath("$.citations[0].project").value("event-dashboard"));
+    }
+
+    @Test
+    void askWithValidContextForwardsItToService() throws Exception {
+        when(nova.ask(eq("¿Qué hace hockey-pong?"), eq("hockey-pong"))).thenReturn(new NovaAnswer(
+                "Un Pong de hockey",
+                List.of(new NovaAnswer.Citation("hockey-pong", "Hockey Pong", "Juego…"))));
+
+        mockMvc.perform(post("/api/ask")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"question":"¿Qué hace hockey-pong?","context":"hockey-pong"}"""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.citations[0].project").value("hockey-pong"));
+
+        verify(nova).ask("¿Qué hace hockey-pong?", "hockey-pong");
+    }
+
+    @Test
+    void askWithInvalidContextFallsBackToGlobal() throws Exception {
+        when(nova.ask(eq("¿Qué stack usa Javier?"), eq("no-existe"))).thenReturn(new NovaAnswer(
+                "Javier usa Spring Boot",
+                List.of(new NovaAnswer.Citation("event-dashboard", "Panel de Eventos", "Microservicio Spring Boot…"))));
+
+        mockMvc.perform(post("/api/ask")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"question":"¿Qué stack usa Javier?","context":"no-existe"}"""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.citations[0].project").value("event-dashboard"));
+
+        verify(nova).ask("¿Qué stack usa Javier?", "no-existe");
+    }
+
+    @Test
+    void askToleratesUnknownFields() throws Exception {
+        when(nova.ask(anyString(), any())).thenReturn(new NovaAnswer("ok", List.of()));
+
+        mockMvc.perform(post("/api/ask")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"question":"hola","context":null,"extra":"ignorado"}"""))
+                .andExpect(status().isOk());
     }
 
     @Test
