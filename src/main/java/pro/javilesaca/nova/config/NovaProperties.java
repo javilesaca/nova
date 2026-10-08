@@ -56,9 +56,4 @@ public record NovaProperties(
         }
     }
 
-    /** Compat: sin identidad (comportamiento actual). */
-    public NovaProperties(String contentDir, String storeFile, int topK, double similarityThreshold) {
-        this(contentDir, storeFile, topK, similarityThreshold,
-                new Owner("", "", "", List.of(), "", List.of()));
-    }
 }

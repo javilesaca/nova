@@ -20,7 +20,7 @@ class ProjectDocumentLoaderTest {
 
     private ProjectDocumentLoader loader() {
         return new ProjectDocumentLoader(
-                new NovaProperties(tempDir.toString(), tempDir.resolve("v.json").toString(), 5, 0.0));
+                new NovaProperties(tempDir.toString(), tempDir.resolve("v.json").toString(), 5, 0.0, null));
     }
 
     @Test

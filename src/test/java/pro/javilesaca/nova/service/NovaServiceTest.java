@@ -43,7 +43,7 @@ class NovaServiceTest {
                         .defaultAnswer(org.mockito.Answers.RETURNS_SELF));
         when(builder.build()).thenReturn(chatClient);
         service = new NovaService(builder, vectorStore,
-                new NovaProperties("src/test/resources/content", "target/test-store.json", 5, 0.5));
+                new NovaProperties("src/test/resources/content", "target/test-store.json", 5, 0.5, null));
         // El stubbing de arriba registra invocaciones en los mocks: se limpian
         // para que los verify(never()) midan solo lo que hace el fast-path.
         clearInvocations(chatClient, vectorStore);
