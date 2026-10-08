@@ -90,6 +90,13 @@ public class NovaService {
             "tiempo", "clima", "llueve", "temperatura", "hora", "fecha", "hoy");
     private static final Set<String> GENERAL_TOKENS = Set.of(
             "chiste", "ayuda", "help");
+    /** Pedidos de chiste/ayuda son cortos; las preguntas de proyecto son largas. */
+    private static final int GENERAL_MAX_TOKENS = 4;
+    /** Saludos: solo preguntas cortas; con más tokens va al RAG. Mismo umbral que GENERAL. */
+    private static final int SALUDO_MAX_TOKENS = GENERAL_MAX_TOKENS;
+    private static final Set<String> SALUDO_TOKENS = Set.of(
+            "hola", "buenas", "buenos", "dias", "tardes", "noches",
+            "hey", "hello", "gracias", "adios", "chau");
     private static final String WEATHER_CANNED =
             "No es mi función: solo respondo sobre el portfolio de Javier y sus proyectos.";
     private static final String GENERAL_CANNED =
@@ -178,7 +185,10 @@ public class NovaService {
             return identity.get();
         }
         // 0b. Fast-path fuera de ámbito: canned + citas vacías, sin modelo ni vector store.
-        Set<String> tokens = Set.of(normalized.split("[^a-z]+"));
+        java.util.List<String> words = java.util.Arrays.stream(normalized.split("[^a-z]+"))
+                .filter(s -> !s.isEmpty())
+                .toList();
+        Set<String> tokens = Set.copyOf(words);
         // "tiempo real" (eventos/SSE del portfolio) no es el clima: se excluye del token "tiempo".
         boolean weather = tokens.stream()
                 .anyMatch(t -> WEATHER_TOKENS.contains(t)
@@ -186,7 +196,10 @@ public class NovaService {
         if (weather) {
             return new NovaAnswer(WEATHER_CANNED, List.of());
         }
-        if (tokens.stream().anyMatch(GENERAL_TOKENS::contains)) {
+        if (words.size() <= GENERAL_MAX_TOKENS && tokens.stream().anyMatch(GENERAL_TOKENS::contains)) {
+            return new NovaAnswer(GENERAL_CANNED, List.of());
+        }
+        if (words.size() <= SALUDO_MAX_TOKENS && tokens.stream().anyMatch(SALUDO_TOKENS::contains)) {
             return new NovaAnswer(GENERAL_CANNED, List.of());
         }
         // 0c. Caché de respuestas LLM: pregunta normalizada + contexto.

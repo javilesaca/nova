@@ -82,6 +82,38 @@ class NovaServiceTest {
     }
 
     @Test
+    void saludosYCortesiaRespondenCannedGeneralSinLlamarAlModelo() {
+        assertThat(service.ask("hola nova").answer()).contains("No estoy entrenado para esa tarea");
+        assertThat(service.ask("buenos días").answer()).contains("No estoy entrenado para esa tarea");
+        assertThat(service.ask("gracias").answer()).contains("No estoy entrenado para esa tarea");
+        verify(chatClient, never()).prompt();
+        verify(vectorStore, never()).similaritySearch(org.mockito.ArgumentMatchers.any(org.springframework.ai.vectorstore.SearchRequest.class));
+    }
+
+    @Test
+    void saludoEnPreguntaLargaVaAlModelo() {
+        NovaAnswer ranking = service.ask("Hola, cuéntame del proyecto ranking de videojuegos");
+        assertThat(ranking.answer()).isEqualTo("respuesta portfolio");
+
+        NovaAnswer dias = service.ask("¿cuántos días de desarrollo llevó hockey-pong?");
+        assertThat(dias.answer()).isEqualTo("respuesta portfolio");
+    }
+
+    @Test
+    void generalCortoVaACannedYProyectoLargoVaAlModelo() {
+        assertThat(service.ask("cuéntame un chiste").answer()).contains("No estoy entrenado");
+        assertThat(service.ask("necesito ayuda").answer()).contains("No estoy entrenado");
+        verify(chatClient, never()).prompt();
+
+        clearInvocations(chatClient, vectorStore);
+        assertThat(service.ask("¿qué proyecto ayuda a gestionar gastos?").answer())
+                .isEqualTo("respuesta portfolio");
+        assertThat(service.ask("muchas gracias por tu ayuda con hockey-pong").answer())
+                .isEqualTo("respuesta portfolio");
+        verify(chatClient, times(2)).prompt();
+    }
+
+    @Test
     void preguntaPortfolioSigueYendoAlModelo() {
         NovaAnswer answer = service.ask("¿Qué proyecto usa eventos en tiempo real?");
 
