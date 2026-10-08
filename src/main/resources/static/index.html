@@ -206,11 +206,20 @@
     // NOVA piensa mientras el fetch está en curso.
     window.NovaFace.setState('thinking');
     try {
-      const res = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
-      });
+      // Timeout de 15 s: sin librerías, solo AbortController.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      let res;
+      try {
+        res = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
       const data = await res.json();
       // Error HTTP: cara de duda.
       if (!res.ok) { pending.textContent = 'Error ' + res.status; window.NovaFace.setState('confused'); return; }
@@ -225,8 +234,13 @@
       const sabe = citas.length > 0 && !NOSE.test(data.answer);
       window.NovaFace.setState(sabe ? 'happy' : 'confused');
     } catch (err) {
-      pending.textContent = 'No pude contactar con NOVA: ' + err;
-      // Fallo de red: cara de duda.
+      // Abort por timeout (15 s): aviso + cara de duda.
+      if (err && err.name === 'AbortError') {
+        pending.textContent = 'Tardó demasiado (15 s): prueba con una pregunta sobre el portfolio.';
+      } else {
+        pending.textContent = 'No pude contactar con NOVA: ' + err;
+      }
+      // Fallo de red o timeout: cara de duda.
       window.NovaFace.setState('confused');
     } finally {
       delete form.dataset.busy;
