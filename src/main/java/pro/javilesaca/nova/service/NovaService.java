@@ -98,10 +98,19 @@ public class NovaService {
             "hola", "buenas", "buenos", "dias", "tardes", "noches",
             "hey", "hello", "gracias", "adios", "chau");
     private static final String WEATHER_CANNED =
-            "No es mi función: solo respondo sobre el portfolio de Javier y sus proyectos.";
+            "No es mi función: solo respondo sobre el portfolio de Javier y sus proyectos. "
+                    + "Puedo contarte su experiencia, su stack o sus proyectos: Agente Gamer, Panel de Eventos, Ranking de Videojuegos, Hockey Pong y Memory Cards.";
     private static final String GENERAL_CANNED =
             "No estoy entrenado para esa tarea: respondo solo sobre el perfil y los proyectos de Javier. "
-                    + "Puedo contarte sobre Ranking de Videojuegos, Hockey Pong o Memory Card.";
+                    + "Puedo contarte sobre Ranking de Videojuegos, Hockey Pong o Memory Cards.";
+
+    /**
+     * Project-name tokens: an "experiencia" question naming one of these goes to
+     * RAG instead of the identity canned (profile-level answers only without them).
+     */
+    private static final Set<String> PROJECT_TOKENS = Set.of(
+            "gamer", "agente", "event", "dashboard", "eventdashboard",
+            "ranking", "videojuego", "videojuegos", "hockey", "pong", "memory");
 
     /**
      * IDENTIDAD genérica: responde con el {@code owner} configurado, sin LLM.
@@ -119,7 +128,7 @@ public class NovaService {
                 || (normalized.contains("quien es") && normalized.contains(firstName))
                 || normalized.contains("a que te dedicas")
                 || normalized.contains("sobre ti");
-        boolean experience = normalized.contains("experiencia");
+        boolean experience = normalized.contains("experiencia") && !mentionsProject(normalized);
         boolean hire = normalized.contains("por que contratar") || normalized.contains("contratar");
         if (!who && !experience && !hire) {
             return java.util.Optional.empty();
@@ -129,7 +138,8 @@ public class NovaService {
                 : " Áreas: " + String.join(", ", owner.areas()) + ".";
         String answer;
         if (hire) {
-            answer = "¿Por qué contratar a " + owner.name() + "? " + owner.hire();
+            String hireText = owner.hire() == null ? "" : owner.hire().trim();
+            answer = hireText;
         } else if (experience) {
             answer = "Experiencia de " + owner.name() + " (" + owner.role() + "): "
                     + owner.bio() + "." + areas;
@@ -137,6 +147,16 @@ public class NovaService {
             answer = owner.name() + " es " + owner.role() + ". " + owner.bio() + "." + areas;
         }
         return java.util.Optional.of(new NovaAnswer(answer.trim(), List.of()));
+    }
+
+    /** True when the normalized question names a portfolio project (goes to RAG). */
+    private static boolean mentionsProject(String normalized) {
+        for (String w : normalized.split("[^a-z]+")) {
+            if (PROJECT_TOKENS.contains(w)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** SYSTEM_PROMPT compuesto con owner cuando existe (una línea rol+áreas). */

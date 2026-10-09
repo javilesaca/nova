@@ -54,7 +54,7 @@ class NovaServiceTest {
         NovaAnswer answer = service.ask("¿Qué tiempo hace hoy en Madrid?");
 
         assertThat(answer.answer())
-                .isEqualTo("No es mi función: solo respondo sobre el portfolio de Javier y sus proyectos.");
+                .isEqualTo("No es mi función: solo respondo sobre el portfolio de Javier y sus proyectos. Puedo contarte su experiencia, su stack o sus proyectos: Agente Gamer, Panel de Eventos, Ranking de Videojuegos, Hockey Pong y Memory Cards.");
         assertThat(answer.citations()).isEmpty();
         verify(chatClient, never()).prompt();
         verify(vectorStore, never()).similaritySearch(org.mockito.ArgumentMatchers.any(org.springframework.ai.vectorstore.SearchRequest.class));
